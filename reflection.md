@@ -2,6 +2,113 @@
 
 ## 1. System Design
 
+### Core User Actions
+
+Based on the project scenario, a user of PawPal+ should be able to do three core things:
+
+1. **Set up their owner and pet profile.** The user enters basic information about themselves (such as their name and how much time they have available each day) and about their pet (name, species/breed, and any care preferences). This profile gives the app the context it needs to tailor a plan.
+
+2. **Manage care tasks.** The user can add, edit, and remove pet care tasks — walks, feeding, medications, enrichment, grooming, and so on. For each task they specify at least a duration (how long it takes) and a priority (how important it is), so the scheduler knows what to fit in and in what order.
+
+3. **Generate and view a daily plan.** The user asks PawPal+ to produce a daily schedule from their tasks, the available time, and their priorities/preferences. The app displays the plan clearly (which task happens when) and explains the reasoning behind the choices it made.
+
+### Building Blocks (Main Objects)
+
+The system is organized around four main objects. For each, the information it holds (attributes) and the actions it performs (methods) are listed below.
+
+#### `Owner`
+- **Responsibility:** Represents the pet owner and their daily constraints.
+- **Attributes:**
+  - `name`: the owner's name.
+  - `available_minutes`: total time the owner has available per day.
+  - `preferences`: owner preferences (e.g., preferred times, task types to favor).
+- **Methods:**
+  - `update_availability(minutes)`: change the daily time budget.
+  - `set_preference(key, value)`: record an owner preference.
+
+#### `Pet`
+- **Responsibility:** Represents the pet being cared for.
+- **Attributes:**
+  - `name`: the pet's name.
+  - `species`: e.g., dog, cat.
+  - `breed`: e.g., Golden Retriever.
+  - `notes`: any special care notes.
+- **Methods:**
+  - `describe()`: return a short description of the pet.
+  - `update_notes(notes)`: update care notes.
+
+#### `Task`
+- **Responsibility:** Represents a single care task to be scheduled.
+- **Attributes:**
+  - `name`: what the task is (e.g., "Morning walk").
+  - `duration`: how many minutes the task takes.
+  - `priority`: importance level (e.g., high/medium/low).
+  - `recurring`: whether the task repeats (e.g., daily).
+- **Methods:**
+  - `edit(name, duration, priority)`: modify the task's details.
+  - `is_high_priority()`: return whether the task is high priority.
+
+#### `Scheduler`
+- **Responsibility:** Builds the daily plan from tasks and constraints, and explains it.
+- **Attributes:**
+  - `tasks`: the list of `Task` objects to consider.
+  - `owner`: the `Owner` whose constraints apply.
+  - `plan`: the resulting ordered list of scheduled tasks.
+- **Methods:**
+  - `add_task(task)`: add a task to the pool.
+  - `remove_task(task)`: remove a task from the pool.
+  - `sort_tasks()`: order tasks by priority (and duration as a tiebreaker).
+  - `generate_plan()`: fit tasks into available time and produce the daily plan.
+  - `explain_plan()`: return a human-readable explanation of why the plan was chosen.
+
+### UML Class Diagram
+
+```mermaid
+classDiagram
+    class Owner {
+        +str name
+        +int available_minutes
+        +dict preferences
+        +update_availability(int minutes)
+        +set_preference(str key, value)
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +str notes
+        +describe() str
+        +update_notes(str notes)
+    }
+
+    class Task {
+        +str name
+        +int duration
+        +str priority
+        +bool recurring
+        +edit(str name, int duration, str priority)
+        +is_high_priority() bool
+    }
+
+    class Scheduler {
+        +list~Task~ tasks
+        +Owner owner
+        +list plan
+        +add_task(Task task)
+        +remove_task(Task task)
+        +sort_tasks()
+        +generate_plan() list
+        +explain_plan() str
+    }
+
+    Owner "1" --> "1" Pet : cares for
+    Scheduler "1" --> "1" Owner : uses constraints
+    Scheduler "1" --> "*" Task : schedules
+```
+
+---
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
