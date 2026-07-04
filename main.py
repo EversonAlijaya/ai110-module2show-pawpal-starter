@@ -52,9 +52,14 @@ def main() -> None:
     print("-" * 52)
     print(f"  Scheduled: {len(plan)} of {len(owner.get_all_tasks())} tasks, {total} min used")
 
+    minutes_left = owner.available_minutes - total
     skipped = [t for t in owner.get_all_tasks() if t not in plan]
+    if skipped:
+        print(f"  Skipped (only {minutes_left} min left in the day):")
     for task in skipped:
-        print(f"  Skipped:   {task.description} ({pet_name_for(task, owner)}) — not enough time left")
+        when = task.due_time if task.due_time else "anytime"
+        shortfall = task.duration - minutes_left
+        print(f"  {when:>7}  {task.description:<22} {pet_name_for(task, owner):<8} {task.duration:>3} min  [{task.priority}]  needs {shortfall} more min")
     print("=" * 52)
 
 

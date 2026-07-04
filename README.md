@@ -59,7 +59,8 @@ Output from running `python main.py` (the CLI demo script):
   anytime  Brush fur              Biscuit   20 min  [low]
 ----------------------------------------------------
   Scheduled: 5 of 6 tasks, 85 min used
-  Skipped:   Fetch practice (Mochi) — not enough time left
+  Skipped (only 5 min left in the day):
+    17:00  Fetch practice         Mochi     25 min  [low]  needs 20 more min
 ====================================================
 ```
 
