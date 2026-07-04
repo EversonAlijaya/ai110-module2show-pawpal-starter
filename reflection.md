@@ -122,7 +122,7 @@ The relationships were: an `Owner` cares for a `Pet`, and a `Scheduler` uses one
 
 **b. Design changes**
 
-Yes — one change came out of implementing the skeleton. I originally imagined `Pet` and `Task` as regular classes with hand-written `__init__` methods, the same way I wrote `Owner` and `Scheduler`. When I translated the UML into Python I made `Pet` and `Task` **dataclasses** instead. They are pure data containers with no real construction logic, so the dataclass decorator removes the boilerplate `__init__`, gives me sensible defaults (`breed=""`, `recurring=False`), and keeps the files clean and readable. I left `Owner` and `Scheduler` as regular classes because they hold mutable collections and coordinate behavior, so an explicit `__init__` (guarding against a shared mutable default for `preferences`/`tasks`) is clearer there. The class names, attributes, and relationships from the original UML stayed the same.
+Yes — one change came out of implementing the skeleton. I originally imagined `Pet` and `Task` as regular classes with hand-written `__init__` methods, the same way I wrote `Owner` and `Scheduler`. When I translated the UML into Python I made `Pet` and `Task` dataclasses instead. They are pure data containers with no real construction logic, so the dataclass decorator removes the boilerplate `__init__`, gives me sensible defaults (`breed=""`, `recurring=False`), and keeps the files clean and readable. I left `Owner` and `Scheduler` as regular classes because they hold mutable collections and coordinate behavior, so an explicit `__init__` (guarding against a shared mutable default for `preferences`/`tasks`) is clearer there. The class names, attributes, and relationships from the original UML stayed the same.
 
 ---
 
@@ -149,8 +149,11 @@ Yes — one change came out of implementing the skeleton. I originally imagined 
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+One moment where I didn't accept the AI's output as-is was the demo script's handling of skipped tasks. The first version the AI wrote only printed something like `Skipped: Fetch practice (Mochi) — not enough time left`. That technically worked, but as a user it wasn't actually useful: it didn't tell me how long the task was, how important it was, or when it was supposed to happen — so I had no way to judge whether skipping it was reasonable or what I could do about it.
+
+I asked the AI to redo that part so a skipped task shows the same detail as a scheduled one (due time, duration, priority) plus how many more minutes I would need to fit it in. Now the output says the schedule had "only 5 min left in the day" and that Fetch practice "needs 20 more min," which turns a vague message into something actionable.
+
+To verify the change, I reran `python main.py` and checked the math by hand: the owner had 90 minutes, the plan used 85, so 5 minutes were left, and a 25-minute task really is 20 minutes short. The lesson for me was that AI-generated code can be *correct* but still not *good* — it satisfied the requirement to print a schedule, but I had to apply my own judgment about what information a real user would actually need.
 
 ---
 
