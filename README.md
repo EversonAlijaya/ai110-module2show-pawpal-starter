@@ -73,10 +73,20 @@ pytest
 pytest --cov
 ```
 
+The suite covers task completion (`mark_complete` flips the status), task management (adding a task to a pet grows its task list), and scheduling (the plan includes tasks from multiple pets and skips completed ones).
+
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0
+collected 3 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 33%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 66%]
+tests/test_pawpal.py::test_scheduler_skips_completed_tasks_across_pets PASSED [100%]
+
+============================== 3 passed in 0.01s ===============================
 ```
 
 ## 📐 Smarter Scheduling
