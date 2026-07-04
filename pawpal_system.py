@@ -18,6 +18,7 @@ class Task:
 
     description: str
     duration: int
+    due_time: str = ""  # 24-hour "HH:MM", e.g. "08:00"; empty means anytime
     priority: str = "medium"
     frequency: str = "once"
     completed: bool = False
@@ -121,6 +122,10 @@ class Scheduler:
         """Order tasks by priority (high first), then by shorter duration."""
         return sorted(tasks, key=lambda task: (PRIORITY_ORDER.get(task.priority, 1), task.duration))
 
+    def sort_by_time(self, tasks: list[Task]) -> list[Task]:
+        """Order tasks by due time (earliest first); tasks with no time go last."""
+        return sorted(tasks, key=lambda task: (task.due_time == "", task.due_time))
+
     def generate_plan(self) -> list[Task]:
         """Fit incomplete tasks into available time and produce the daily plan."""
         candidates = [task for task in self.get_all_tasks() if not task.completed]
@@ -133,7 +138,7 @@ class Scheduler:
                 plan.append(task)
                 minutes_left -= task.duration
 
-        self.plan = plan
+        self.plan = self.sort_by_time(plan)
         return self.plan
 
     def explain_plan(self) -> str:
@@ -143,5 +148,6 @@ class Scheduler:
 
         lines = [f"Today's plan ({self.owner.available_minutes} minutes available):"]
         for task in self.plan:
-            lines.append(f"- {task.description} ({task.duration} min, {task.priority} priority)")
+            when = task.due_time if task.due_time else "anytime"
+            lines.append(f"- {when} — {task.description} ({task.duration} min, {task.priority} priority)")
         return "\n".join(lines)
