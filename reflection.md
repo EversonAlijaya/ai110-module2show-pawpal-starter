@@ -135,8 +135,9 @@ Yes — one change came out of implementing the skeleton. I originally imagined 
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+One deliberate tradeoff is in conflict detection: `find_conflicts()` only flags tasks that start at *exactly* the same date and time, rather than checking whether tasks *overlap* in duration. For example, a 30-minute walk at 08:00 and a feeding at 08:15 do overlap in reality, but my scheduler won't flag them — it only catches two tasks both due at 08:00.
+
+I chose exact-match because it keeps the algorithm simple and easy to verify: group tasks by their (date, time) slot and warn when a slot has more than one task. Full overlap detection would need to convert every "HH:MM" string into minutes, compute each task's end time, and compare every pair of intervals — noticeably more code and more places for bugs, all to catch a case that matters less in this scenario. Pet care tasks are short and flexible (a feeding can slide 15 minutes without harm), and the warning is advisory — it doesn't block anything — so the cost of a missed overlap is low, while the cost of a confusing false alarm ("these don't start at the same time, why is it complaining?") felt higher. For a scheduler managing rigid appointments (a vet clinic, say), I'd make the opposite call and implement true interval-overlap checking.
 
 ---
 

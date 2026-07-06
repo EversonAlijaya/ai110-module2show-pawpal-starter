@@ -7,7 +7,8 @@ owns its list of Tasks, and the Scheduler retrieves tasks by walking that
 chain through the Owner rather than holding its own separate task list.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from datetime import date, timedelta
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
@@ -20,7 +21,8 @@ class Task:
     duration: int
     due_time: str = ""  # 24-hour "HH:MM", e.g. "08:00"; empty means anytime
     priority: str = "medium"
-    frequency: str = "once"
+    frequency: str = "once"  # "once", "daily", or "weekly"
+    due_date: str = ""  # ISO "YYYY-MM-DD"; empty means today
     completed: bool = False
 
     def edit(self, description: str = None, duration: int = None, priority: str = None) -> None:
@@ -43,6 +45,15 @@ class Task:
     def mark_incomplete(self) -> None:
         """Mark this task as not yet completed."""
         self.completed = False
+
+    def next_occurrence(self) -> "Task | None":
+        """Return a fresh copy of this task due one day/week later, or None if not recurring."""
+        intervals = {"daily": timedelta(days=1), "weekly": timedelta(weeks=1)}
+        if self.frequency not in intervals:
+            return None
+        base = date.fromisoformat(self.due_date) if self.due_date else date.today()
+        next_date = base + intervals[self.frequency]
+        return replace(self, due_date=next_date.isoformat(), completed=False)
 
 
 @dataclass
@@ -75,6 +86,14 @@ class Pet:
     def get_tasks(self) -> list[Task]:
         """Return this pet's tasks."""
         return self.tasks
+
+    def complete_task(self, task: Task) -> Task | None:
+        """Mark a task complete; if it recurs, add and return its next occurrence."""
+        task.mark_complete()
+        follow_up = task.next_occurrence()
+        if follow_up is not None:
+            self.tasks.append(follow_up)
+        return follow_up
 
 
 class Owner:
@@ -126,9 +145,43 @@ class Scheduler:
         """Order tasks by due time (earliest first); tasks with no time go last."""
         return sorted(tasks, key=lambda task: (task.due_time == "", task.due_time))
 
+    def filter_by_status(self, completed: bool) -> list[Task]:
+        """Return every task across all pets matching the given completion status."""
+        return [task for task in self.get_all_tasks() if task.completed == completed]
+
+    def filter_by_pet(self, pet_name: str) -> list[Task]:
+        """Return the tasks belonging to the pet with the given name."""
+        for pet in self.owner.pets:
+            if pet.name == pet_name:
+                return list(pet.tasks)
+        return []
+
+    def find_conflicts(self) -> list[str]:
+        """Return warning messages for incomplete tasks scheduled at the same date and time."""
+        today = date.today().isoformat()
+        by_slot: dict[tuple[str, str], list[tuple[str, Task]]] = {}
+        for pet in self.owner.pets:
+            for task in pet.tasks:
+                if not task.completed and task.due_time:
+                    slot = (task.due_date or today, task.due_time)
+                    by_slot.setdefault(slot, []).append((pet.name, task))
+
+        warnings = []
+        for (due_date, due_time), entries in sorted(by_slot.items()):
+            if len(entries) > 1:
+                names = " and ".join(f"'{task.description}' ({pet_name})" for pet_name, task in entries)
+                day = "" if due_date == today else f" on {due_date}"
+                warnings.append(f"Conflict at {due_time}{day}: {names} are scheduled at the same time.")
+        return warnings
+
     def generate_plan(self) -> list[Task]:
-        """Fit incomplete tasks into available time and produce the daily plan."""
-        candidates = [task for task in self.get_all_tasks() if not task.completed]
+        """Fit today's incomplete tasks into available time and produce the daily plan."""
+        today = date.today().isoformat()
+        candidates = [
+            task
+            for task in self.get_all_tasks()
+            if not task.completed and (not task.due_date or task.due_date <= today)
+        ]
         ordered = self.sort_tasks(candidates)
 
         plan = []
