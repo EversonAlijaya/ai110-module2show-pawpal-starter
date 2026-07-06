@@ -28,24 +28,26 @@ add your pets, give them care tasks, and generate today's schedule.
 """
 )
 
-with st.expander("Scenario", expanded=True):
+with st.expander("How to use", expanded=False):
     st.markdown(
         """
-**PawPal+** is a pet care planning assistant. It helps a pet owner plan care tasks
-for their pet(s) based on constraints like time, priority, and preferences.
-
-You will design and implement the scheduling logic and connect it to this Streamlit UI.
+1. **Owner** — enter your name and how many minutes you have for pet care today.
+2. **Pets** — add each of your pets (name, species, and optionally breed).
+3. **Tasks** — pick a pet, describe a care task (walk, feeding, meds…), and set
+   its duration, due time, and priority. Repeat for as many tasks as you like.
+4. **Today's Schedule** — click *Generate schedule* to build your day.
 """
     )
 
-with st.expander("What you need to build", expanded=True):
+with st.expander("How scheduling works", expanded=False):
     st.markdown(
         """
-At minimum, your system should:
-- Represent pet care tasks (what needs to happen, how long it takes, priority)
-- Represent the pet and the owner (basic info and preferences)
-- Build a plan/schedule for a day that chooses and orders tasks based on constraints
-- Explain the plan (why each task was chosen and when it happens)
+- High-priority tasks are placed first, then medium, then low.
+- Tasks only make the plan if they fit in your remaining time.
+- The plan is shown in time order, like a daily agenda.
+- Tasks that don't fit are listed as skipped, along with how many
+  more minutes you would need to fit them in.
+- Completed tasks are left out automatically.
 """
     )
 
