@@ -154,6 +154,34 @@ tests/test_pawpal.py::test_high_priority_wins_over_low_when_time_is_tight PASSED
 
 The daily plan itself (`Scheduler.generate_plan()`) combines these: it filters out completed and future-dated tasks, sorts by priority, fits what it can into the owner's available minutes, and presents the result in time order.
 
+### Advanced scheduling: priority-based planning under a time budget
+
+Beyond the individual features above, `generate_plan()` implements priority-based scheduling against a hard time budget. Tasks are ranked high, then medium, then low (shorter tasks win ties so more can fit), and each task only makes the plan if it fits in the minutes remaining after everything ranked above it. This means a low-priority task is dropped in favor of a high-priority one even when the low-priority task was added first or is due earlier in the day.
+
+This CLI output (from `python main.py`, 80 available minutes) demonstrates it: the low-priority 25-minute "Fetch practice" loses its spot even though it fits earlier in the day than some scheduled tasks, and the output explains the shortfall:
+
+```
+--- Today's schedule -----------------------------------
+    08:00  Give medication        Biscuit    5 min  [high]
+    08:45  Feeding                Mochi     10 min  [high]
+    09:00  Feeding                Biscuit   10 min  [high]
+    19:30  Litter box cleaning    Biscuit   15 min  [medium]
+  anytime  Brush fur              Biscuit   20 min  [low]
+--------------------------------------------------------
+  Scheduled: 5 tasks, 60 of 80 min used
+  Skipped (only 20 min left in the day):
+    17:00  Fetch practice         Mochi     25 min  [low]  needs 5 more min
+```
+
+The behavior is locked in by `test_high_priority_wins_over_low_when_time_is_tight`, which gives the scheduler room for exactly one of two tasks and asserts the high-priority one wins.
+
+## 🎨 Output Formatting
+
+Both front ends use structured formatting so schedules read like a real agenda rather than raw object dumps:
+
+- **CLI (`main.py`)**: aligned columns via Python format specifications in `print_task_row()` (right-aligned times `{when:>7}`, left-aligned task names `{task.description:<22}`, right-aligned durations `{task.duration:>3}`), section headers drawn by a `header()` helper with horizontal rules, and the ⚠ emoji marking conflict warnings. No external libraries are needed; it is all built on f-strings.
+- **Web app (`app.py`)**: Streamlit components map output types to visual styles: `st.table` for the task list and generated schedule, `st.warning` (yellow banners) for conflicts and skipped tasks, `st.success` (green) for completions and recurring follow-ups, and `st.info` for empty states.
+
 ## 📸 Demo Walkthrough
 
 Launch the app with `streamlit run app.py` and follow this workflow:
