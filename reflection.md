@@ -122,7 +122,9 @@ The relationships were: an `Owner` cares for a `Pet`, and a `Scheduler` uses one
 
 **b. Design changes**
 
-one change came out of implementing the skeleton. I originally imagined `Pet` and `Task` as regular classes with hand-written `__init__` methods, the same way I wrote `Owner` and `Scheduler`. When I translated the UML into Python I made `Pet` and `Task` dataclasses instead. They are pure data containers with no real construction logic, so the dataclass decorator removes the boilerplate `__init__`, gives me sensible defaults (`breed=""`, `recurring=False`), and keeps the files clean and readable. I left `Owner` and `Scheduler` as regular classes because they hold mutable collections and coordinate behavior, so an explicit `__init__` (guarding against a shared mutable default for `preferences`/`tasks`) is clearer there. The class names, attributes, and relationships from the original UML stayed the same.
+one change came out of implementing the skeleton. I originally imagined `Pet` and `Task` as regular classes with hand-written `__init__` methods, the same way I wrote `Owner` and `Scheduler`. When I translated the UML into Python I made `Pet` and `Task` dataclasses instead. They are pure data containers with no real construction logic, so the dataclass decorator removes the boilerplate `__init__`, gives me sensible defaults (`breed=""`, `recurring=False`), and keeps the files clean and readable. I left `Owner` and `Scheduler` as regular classes because they hold mutable collections and coordinate behavior, so an explicit `__init__` (guarding against a shared mutable default for `preferences`/`tasks`) is clearer there.
+
+A bigger change came during core implementation. In the initial UML, the `Scheduler` held its own flat list of tasks, the `Owner` had a single `Pet`, and pets and tasks were not connected at all. Once I started implementing, it became clear the data should flow through an ownership chain instead: an `Owner` manages a list of `Pet`s, each `Pet` owns its list of `Task`s, and the `Scheduler` holds no task data of its own, it asks the `Owner` for all tasks across every pet. This made "works across multiple pets" automatic for every feature that came later. `Task` also grew during the algorithm phase: it gained a due time, a due date, a frequency, and a completion flag (replacing the original `recurring` boolean) to support recurring tasks and conflict detection. The final structure is captured in `diagrams/uml_final.mmd`, alongside the original draft in `diagrams/uml.mmd` for comparison.
 
 ---
 
@@ -130,8 +132,9 @@ one change came out of implementing the skeleton. I originally imagined `Pet` an
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers five things. The owner's available minutes act as a hard budget: no plan can use more time than the owner has. Priority (high, medium, low) decides which tasks claim that budget first, with shorter tasks winning ties so more can fit. Completion status filters out anything already done. The due date keeps the plan focused on today, so a recurring task auto-created for tomorrow does not leak into today's schedule. Finally, due times order the plan for presentation and drive conflict warnings, though they do not decide what gets in.
+
+I ranked time and priority as the constraints that mattered most because they capture the core problem in the scenario: a busy owner who cannot do everything. If the budget is tight, it is more important that medication happens than that fetch practice does, which is why priority beats due time in selection. The Owner class also stores a preferences dictionary, but the current algorithm does not use it yet. I kept it in the design because "owner preferences" are part of the scenario, and it gives the scheduler an obvious place to grow (for example, preferring morning tasks) without changing the class structure.
 
 **b. Tradeoffs**
 
@@ -183,12 +186,12 @@ The missing star is for the gaps I know about. Conflict detection only catches e
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I'm most satisfied with the logic layer and how testable it turned out to be. The Owner to Pet to Task chain, with the Scheduler reading everything through the Owner, meant every feature I added later (filtering, conflicts, recurrence) had an obvious home and could work across multiple pets for free. The CLI-first workflow also paid off: by the time the Streamlit app was wired up, the scheduling brain had already been exercised in the terminal and covered by tests, so connecting the UI was mostly plumbing rather than debugging.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+With another iteration, the first thing I would redesign is how times are stored. Right now due times are "HH:MM" strings and dates are ISO strings, which works because sorting strings in those formats happens to match sorting the actual times. But it means the system cannot do real time math, which is exactly what better conflict detection needs. I would switch to Python's datetime objects, then upgrade conflict detection from "same start time" to true overlap checking (a 30-minute walk at 08:00 should conflict with a feeding at 08:15). I would also actually use the Owner preferences dictionary that the design carries but the algorithm ignores, and add save/load so pets and tasks survive restarting the app.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+The biggest thing I learned is that when working with an AI that writes code quickly, my most valuable contribution shifts from writing code to verifying it and making the judgment calls. The AI produced code that ran without errors nearly every time, but "runs without errors" hid several real problems: output that was technically correct but useless, a demo that quietly completed the wrong task, and a conflict checker that ignored dates. Every one of those was caught by a human reading the output closely and asking whether it actually made sense, not by the code failing. Designing the system up front in UML gave me the mental map that made that oversight possible, because I always knew what each class was supposed to be responsible for and could tell when generated code drifted from the plan.

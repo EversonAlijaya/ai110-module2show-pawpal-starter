@@ -1,0 +1,59 @@
+classDiagram
+    class Owner {
+        +str name
+        +int available_minutes
+        +dict preferences
+        +list~Pet~ pets
+        +update_availability(int minutes)
+        +set_preference(str key, value)
+        +add_pet(Pet pet)
+        +remove_pet(Pet pet)
+        +get_all_tasks() list~Task~
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +str notes
+        +list~Task~ tasks
+        +describe() str
+        +update_notes(str notes)
+        +add_task(Task task)
+        +remove_task(Task task)
+        +get_tasks() list~Task~
+        +complete_task(Task task) Task
+    }
+
+    class Task {
+        +str description
+        +int duration
+        +str due_time
+        +str priority
+        +str frequency
+        +str due_date
+        +bool completed
+        +edit(str description, int duration, str priority)
+        +is_high_priority() bool
+        +mark_complete()
+        +mark_incomplete()
+        +next_occurrence() Task
+    }
+
+    class Scheduler {
+        +Owner owner
+        +list~Task~ plan
+        +get_all_tasks() list~Task~
+        +sort_tasks(list~Task~ tasks) list~Task~
+        +sort_by_time(list~Task~ tasks) list~Task~
+        +filter_by_status(bool completed) list~Task~
+        +filter_by_pet(str pet_name) list~Task~
+        +find_conflicts() list~str~
+        +generate_plan() list~Task~
+        +explain_plan() str
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : has care tasks
+    Scheduler "1" --> "1" Owner : reads constraints and tasks
+    Task ..> Task : next_occurrence() spawns

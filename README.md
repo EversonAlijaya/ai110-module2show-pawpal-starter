@@ -1,28 +1,32 @@
 # PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a pet care planning assistant. A busy pet owner tells it how much time they have, what pets they care for, and what tasks each pet needs. PawPal+ builds a realistic daily schedule: high-priority tasks first, everything fitted to the available time, presented in time order, with clear warnings for anything that could not fit or that clashes.
 
-## Scenario
+It ships as two front ends over one logic layer: a Streamlit web app (`app.py`) and a CLI demo script (`main.py`), both powered by the classes in `pawpal_system.py`.
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+## ✨ Features
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
+- **Daily plan generation**: fits tasks into the owner's available minutes, choosing by priority (high, then medium, then low) with shorter tasks winning ties.
+- **Sorting by time**: any task list can be displayed in chronological order, with "anytime" tasks at the end.
+- **Filtering**: view tasks for a single pet, or by completed/pending status, across the whole household.
+- **Conflict warnings**: two tasks booked at the same date and time produce a readable warning instead of a silent double-booking.
+- **Daily and weekly recurrence**: completing a recurring task automatically creates the next occurrence (tomorrow or next week) with the same details.
+- **Skipped-task explanations**: anything that did not fit is listed with its full details plus exactly how many more minutes it would have needed.
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+## 🧱 System Design
 
-## What you will build
+The logic layer is four classes (see `diagrams/uml_final.mmd` for the full UML):
 
-Your final app should:
+| Class | Responsibility |
+|-------|----------------|
+| `Task` | One care activity: description, duration, due time/date, priority, how often it repeats, and completion status. Knows how to spawn its own next occurrence. |
+| `Pet` | A pet's identity plus its list of tasks, with methods to add, remove, and complete them. |
+| `Owner` | The human: name, minutes available today, preferences, and the list of pets. Aggregates every task across all pets. |
+| `Scheduler` | The brain. Reads tasks through the Owner and provides sorting, filtering, conflict detection, and daily plan generation. |
 
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+`diagrams/uml.mmd` is the original Phase 1 draft, kept for comparison with the final design.
 
-## Getting started
+## 🚀 Getting started
 
 ### Setup
 
@@ -32,15 +36,18 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Suggested workflow
+### Run it
 
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
+```bash
+# Web app:
+streamlit run app.py
+
+# CLI demo (prints the full feature walkthrough shown below):
+python main.py
+
+# Tests:
+python -m pytest
+```
 
 ## 🖥️ Sample Output
 
@@ -149,12 +156,13 @@ The daily plan itself (`Scheduler.generate_plan()`) combines these: it filters o
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Launch the app with `streamlit run app.py` and follow this workflow:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Set up the owner.** Enter your name and how many minutes you have for pet care today. The scheduler treats this as a hard budget: change it and the next generated plan adapts.
+2. **Add pets.** Give each pet a name, species, and optionally a breed, then click *Add pet*. The app supports any number of pets, and every feature below works across all of them.
+3. **Add tasks.** Pick which pet the task is for, describe it (walk, feeding, medication), and set its duration, due time, priority, and whether it repeats (once, daily, or weekly). Click *Add task*.
+4. **Browse the task table.** Tasks display in time order (the `sort_by_time` feature). Use the two dropdowns to filter by pet or by pending/done status: the same `filter_by_pet` and `filter_by_status` methods the tests verify.
+5. **Complete tasks as you do them.** Select a task and click *Complete*. If it was daily or weekly, a green message confirms the next occurrence was auto-created, and it appears in the table with tomorrow's (or next week's) date.
+6. **Generate the schedule.** Click *Generate schedule*. The plan appears as a time-ordered table showing when each task happens, for which pet, and its priority. Above it, yellow warnings flag any two tasks booked at the same time (conflict detection). Below it, each task that did not fit is listed with how many more minutes it would have needed.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+The same workflow runs end to end in the terminal via `python main.py`; its full output is the fenced code block in the **Sample Output** section above, demonstrating sorting, filtering, recurrence, conflict detection, and the generated plan with a skipped task.
