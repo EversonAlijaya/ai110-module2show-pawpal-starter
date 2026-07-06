@@ -145,9 +145,9 @@ I chose exact-match because it keeps the algorithm simple and easy to verify: gr
 
 **a. How you used AI**
 
-I used an AI coding assistant (Claude, inside VS Code) throughout the project, and my role was to direct it, review its work, and make the decisions rather than to accept whatever it produced. The design was mine to start: I identified the core user actions from the scenario, brainstormed the four classes with their attributes and methods, and then used the AI to translate that plan into a Mermaid UML diagram and Python skeletons. During implementation, I worked phase by phase — for each one I decided what to build, described the exact behavior I wanted, and then read through the generated code and its output before moving on. Nothing got committed until I had reviewed it: I ran the demo and the tests myself, wrote the commits from my own terminal, and kept each commit scoped to one logical change so the history stayed readable.
+I used Claude, inside VS Code, throughout the project, and my role was to direct it, review its work, and make the decisions rather than to accept whatever it produced. I identified the core user actions from the scenario, brainstormed the four classes with their attributes and methods, and then used the AI to translate that plan into a Mermaid UML diagram and Python skeletons. During implementation, I worked phase by phase for each one I decided what to build in each step, described the exact behavior I wanted, and then read through the generated code and its output before moving on. I ran the demo and the tests myself, and kept each commit scoped to one logical change so the history stayed readable.
 
-A lot of my involvement was quality control and product judgment rather than typing code. I caught leftover starter text that would have shipped to users, rejected output formatting that was technically correct but useless in practice, spotted a demo that completed the wrong task, and questioned design choices (like collapsing the help sections) until the AI justified them well enough for me to agree — those stories are in 3b. The prompting lesson I took away is that specific, behavior-level requests beat vague ones: "make the output better" gets generic polish, while "show skipped tasks with the same detail as scheduled ones, plus how many minutes short I am" got exactly what I had in mind. Asking the AI to explain *why* it chose something was often more valuable than the code itself, because it either taught me the reasoning or exposed that there wasn't any. My rule by the end was simple: the AI writes fast, but I read everything, run everything, and decide what stays.
+A lot of my involvement was quality control and product judgment rather than typing code. I caught leftover starter text that would have shipped to users, rejected output formatting that was technically correct but useless in practice, spotted a demo that completed the wrong task, and questioned design choices (like collapsing the help sections) until the AI justified them well enough for me to agree. The prompting lesson I took away is that specific, behavior-level requests beat vague ones: "make the output better" gets generic polish, while "show skipped tasks with the same detail as scheduled ones, plus how many minutes short I am" got exactly what I had in mind. Asking the AI to explain why it chose something was often more valuable than the code itself, because it either taught me the reasoning or exposed that there wasn't any. My rule by the end was simple: the AI writes fast, but I read everything, run everything, and decide what stays.
 
 **b. Judgment and verification**
 
@@ -167,13 +167,15 @@ Verification also caught two real bugs in AI-generated code during the algorithm
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+The suite has 13 tests in two layers. The first layer verifies the core behaviors directly: marking a task complete actually changes its status, adding a task grows the right pet's list, sorting returns tasks in chronological order (untimed tasks last), filtering by pet returns only that pet's tasks, completing a daily task auto-creates the next day's copy (and a one-time task doesn't), and conflict detection flags two tasks at the same time while ignoring the same time on different days. The second layer is edge cases: an owner with no pets, a pet with no tasks, a task longer than the entire time budget, and a tight-budget scenario where only one of two tasks can fit, verifying that priority wins over order of entry.
+
+These tests mattered for two different reasons. The behavior tests exist because two of those behaviors had already been wrong once (the demo completed the wrong task, and the conflict checker ignored dates), so the tests are there to make sure those exact bugs can't return unnoticed. The edge cases exist because they're what a real user hits on day one, like a brand-new user with no pets clicking "Generate schedule," and because empty lists are where this kind of code typically breaks. Every test failure would point at real, user-visible misbehavior instead of an implementation detail.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+I'd put my confidence at 4 out of 5. Every algorithmic feature has at least one test locking in its behavior, the empty and boundary cases pass, and the whole suite plus the CLI demo run green after every change. So for valid inputs, I'm confident the scheduler does what it claims.
+
+The missing star is for the gaps I know about. Conflict detection only catches exact same-time starts, so an overlapping pair (a 30-minute walk at 08:00 and a feeding at 08:15) passes silently. That's a documented tradeoff, but it's still untested territory. Time and date values are trusted to be well-formed ("HH:MM", ISO dates) because the UI constrains them, so malformed strings from any other source are unhandled. And the recurring-task math trusts `timedelta` across month boundaries, but I never explicitly tested completing a daily task on the last day of a month. With more time, those are the next three tests I'd write: interval-overlap detection, malformed input rejection, and month-boundary recurrence.
 
 ---
 

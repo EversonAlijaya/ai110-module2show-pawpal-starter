@@ -130,3 +130,46 @@ def test_no_conflict_for_same_time_on_different_days():
     biscuit.add_task(Task("Medication", duration=5, due_time="08:00", due_date="2026-07-07"))
 
     assert Scheduler(owner).find_conflicts() == []
+
+
+def test_owner_with_no_pets_produces_empty_plan_without_crashing():
+    """An owner with no pets gets an empty plan and no conflicts, not an error."""
+    owner = Owner("Jordan", available_minutes=60)
+    scheduler = Scheduler(owner)
+
+    assert scheduler.generate_plan() == []
+    assert scheduler.find_conflicts() == []
+    assert scheduler.explain_plan() == "No tasks fit into today's plan."
+
+
+def test_pet_with_no_tasks_is_handled():
+    """A pet with zero tasks contributes nothing and breaks nothing."""
+    owner, mochi, biscuit = _household()
+    walk = Task("Walk", duration=30, due_time="08:00")
+    mochi.add_task(walk)
+
+    scheduler = Scheduler(owner)
+
+    assert scheduler.filter_by_pet("Biscuit") == []
+    assert scheduler.generate_plan() == [walk]
+
+
+def test_task_longer_than_budget_is_skipped():
+    """A single task that exceeds the owner's whole time budget never gets planned."""
+    owner, mochi, _ = _household()
+    owner.update_availability(20)
+    mochi.add_task(Task("Long hike", duration=120, due_time="10:00", priority="high"))
+
+    assert Scheduler(owner).generate_plan() == []
+
+
+def test_high_priority_wins_over_low_when_time_is_tight():
+    """With room for only one task, the high-priority one gets the slot."""
+    owner, mochi, biscuit = _household()
+    owner.update_availability(30)
+    fun = Task("Fetch practice", duration=30, due_time="09:00", priority="low")
+    meds = Task("Give medication", duration=30, due_time="17:00", priority="high")
+    mochi.add_task(fun)
+    biscuit.add_task(meds)
+
+    assert Scheduler(owner).generate_plan() == [meds]

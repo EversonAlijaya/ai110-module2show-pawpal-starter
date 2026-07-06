@@ -101,27 +101,40 @@ pytest
 pytest --cov
 ```
 
-The suite covers task completion (`mark_complete` flips the status), task management (adding a task to a pet grows its task list), scheduling (the plan includes tasks from multiple pets and skips completed ones), sorting correctness (earliest first, untimed last), filtering by pet, recurring tasks (completing a daily task spawns a next-day copy; one-time tasks don't), and conflict detection (same time flagged, different days not flagged).
+The suite covers both happy paths and edge cases:
+
+- **Task behavior** — `mark_complete` flips the status; adding a task to a pet grows its task list.
+- **Sorting correctness** — tasks come out in chronological order, with untimed tasks last.
+- **Filtering** — by pet name (unknown pets return an empty list, not an error).
+- **Recurring tasks** — completing a daily task auto-creates a copy due the next day; one-time tasks don't.
+- **Conflict detection** — two tasks at the same time are flagged; the same time on different days is not.
+- **Edge cases** — an owner with no pets, a pet with no tasks, a task longer than the entire time budget, and priority winning over duration when only one task fits.
 
 Sample test output:
 
 ```
 ============================= test session starts ==============================
 platform darwin -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0
-collected 9 items
+collected 13 items
 
-tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 11%]
-tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 22%]
-tests/test_pawpal.py::test_scheduler_skips_completed_tasks_across_pets PASSED [ 33%]
-tests/test_pawpal.py::test_sort_by_time_orders_tasks_and_puts_untimed_last PASSED [ 44%]
-tests/test_pawpal.py::test_filter_by_pet_returns_only_that_pets_tasks PASSED [ 55%]
-tests/test_pawpal.py::test_completing_daily_task_spawns_next_day_occurrence PASSED [ 66%]
-tests/test_pawpal.py::test_completing_one_time_task_spawns_nothing PASSED [ 77%]
-tests/test_pawpal.py::test_find_conflicts_flags_same_time_tasks_across_pets PASSED [ 88%]
-tests/test_pawpal.py::test_no_conflict_for_same_time_on_different_days PASSED [100%]
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  7%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 15%]
+tests/test_pawpal.py::test_scheduler_skips_completed_tasks_across_pets PASSED [ 23%]
+tests/test_pawpal.py::test_sort_by_time_orders_tasks_and_puts_untimed_last PASSED [ 30%]
+tests/test_pawpal.py::test_filter_by_pet_returns_only_that_pets_tasks PASSED [ 38%]
+tests/test_pawpal.py::test_completing_daily_task_spawns_next_day_occurrence PASSED [ 46%]
+tests/test_pawpal.py::test_completing_one_time_task_spawns_nothing PASSED [ 53%]
+tests/test_pawpal.py::test_find_conflicts_flags_same_time_tasks_across_pets PASSED [ 61%]
+tests/test_pawpal.py::test_no_conflict_for_same_time_on_different_days PASSED [ 69%]
+tests/test_pawpal.py::test_owner_with_no_pets_produces_empty_plan_without_crashing PASSED [ 76%]
+tests/test_pawpal.py::test_pet_with_no_tasks_is_handled PASSED           [ 84%]
+tests/test_pawpal.py::test_task_longer_than_budget_is_skipped PASSED     [ 92%]
+tests/test_pawpal.py::test_high_priority_wins_over_low_when_time_is_tight PASSED [100%]
 
-============================== 9 passed in 0.01s ===============================
+============================== 13 passed in 0.02s ==============================
 ```
+
+**Confidence level: ★★★★☆ (4/5).** The core behaviors (sorting, filtering, recurrence, conflict detection, and time-budget planning) are each locked in by at least one test, including the empty and boundary cases. The missing star is for what the suite deliberately doesn't cover: conflict detection only checks exact start-time matches, not duration overlaps, and time inputs are trusted to be valid "HH:MM" strings since the UI constrains them. With more time, overlap detection and malformed-input handling would be the next tests to add.
 
 ## 📐 Smarter Scheduling
 
