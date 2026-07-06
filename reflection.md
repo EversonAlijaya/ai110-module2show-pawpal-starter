@@ -155,6 +155,8 @@ I asked the AI to redo that part so a skipped task shows the same detail as a sc
 
 To verify the change, I reran `python main.py` and checked the math by hand: the owner had 90 minutes, the plan used 85, so 5 minutes were left, and a 25-minute task really is 20 minutes short. The lesson for me was that AI-generated code can be *correct* but still not *good* — it satisfied the requirement to print a schedule, but I had to apply my own judgment about what information a real user would actually need.
 
+A second thing I caught was in the Streamlit app after we wired it to the logic layer. The top of the page still showed the starter project's assignment text — the "Scenario" and "What you need to build" boxes, which literally told the reader "You will design and implement the scheduling logic." That text was written for me as the student, not for someone using the app, so a finished product showing its own homework instructions felt unpolished. I had the AI replace those boxes with real user-facing help: a "How to use" walkthrough of the app's sections and a "How scheduling works" explanation of the scheduler's rules. When the AI set both boxes to start collapsed, I asked it to justify that choice before accepting it — the reasoning (help text is read once, but the controls are used every visit, so the controls should stay front and center) made sense, so I kept it. I verified the change by reloading the app and confirming both sections render and expand correctly.
+
 ---
 
 ## 4. Testing and Verification
