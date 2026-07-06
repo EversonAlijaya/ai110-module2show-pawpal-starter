@@ -34,8 +34,12 @@ with st.expander("How to use", expanded=False):
 1. **Owner** — enter your name and how many minutes you have for pet care today.
 2. **Pets** — add each of your pets (name, species, and optionally breed).
 3. **Tasks** — pick a pet, describe a care task (walk, feeding, meds…), and set
-   its duration, due time, and priority. Repeat for as many tasks as you like.
-4. **Today's Schedule** — click *Generate schedule* to build your day.
+   its duration, due time, priority, and how often it repeats.
+4. **Manage** — mark tasks complete as you do them (daily/weekly tasks
+   automatically come back for the next day or week), and use the filters
+   to view one pet's tasks or check what's still pending.
+5. **Today's Schedule** — click *Generate schedule* to build your day.
+   You'll also be warned if two tasks are booked at the same time.
 """
     )
 
@@ -83,34 +87,67 @@ if owner.pets:
         task_pet = st.selectbox("Pet", [pet.name for pet in owner.pets])
     with col2:
         description = st.text_input("Task", value="Morning walk")
-    col3, col4, col5 = st.columns(3)
+    col3, col4, col5, col6 = st.columns(4)
     with col3:
         duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
     with col4:
         due = st.time_input("Due time", value=time(8, 0))
     with col5:
         priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
+    with col6:
+        frequency = st.selectbox("Repeats", ["once", "daily", "weekly"])
 
     if st.button("Add task"):
         pet = next(p for p in owner.pets if p.name == task_pet)
-        pet.add_task(Task(description, int(duration), due.strftime("%H:%M"), priority))
+        pet.add_task(Task(description, int(duration), due.strftime("%H:%M"), priority, frequency))
+
+    scheduler = Scheduler(owner)
+
+    pending = [(p, t) for p in owner.pets for t in p.tasks if not t.completed]
+    if pending:
+        labels = [f"{t.description} ({p.name}, {t.due_time or 'anytime'})" for p, t in pending]
+        ccol1, ccol2 = st.columns([3, 1])
+        with ccol1:
+            chosen = st.selectbox("Mark a task complete", labels)
+        with ccol2:
+            st.write("")
+            if st.button("Complete"):
+                p, t = pending[labels.index(chosen)]
+                follow_up = p.complete_task(t)
+                if follow_up:
+                    st.success(
+                        f"Done! Since it repeats {follow_up.frequency}, the next one was created for {follow_up.due_date} at {follow_up.due_time}."
+                    )
+                else:
+                    st.success("Done!")
+
+    fcol1, fcol2 = st.columns(2)
+    with fcol1:
+        pet_filter = st.selectbox("Show tasks for", ["All pets"] + [p.name for p in owner.pets])
+    with fcol2:
+        status_filter = st.selectbox("Status", ["All", "Pending", "Done"])
+
+    tasks = scheduler.get_all_tasks() if pet_filter == "All pets" else scheduler.filter_by_pet(pet_filter)
+    if status_filter != "All":
+        tasks = [t for t in tasks if t.completed == (status_filter == "Done")]
 
     rows = [
         {
-            "Pet": pet.name,
+            "Pet": pet_name_for(t, owner),
             "Task": t.description,
-            "Due": t.due_time,
+            "Date": t.due_date if t.due_date else "today",
+            "Due": t.due_time if t.due_time else "anytime",
             "Minutes": t.duration,
             "Priority": t.priority,
+            "Repeats": t.frequency,
             "Done": t.completed,
         }
-        for pet in owner.pets
-        for t in pet.tasks
+        for t in scheduler.sort_by_time(tasks)
     ]
     if rows:
         st.table(rows)
     else:
-        st.info("No tasks yet. Add one above.")
+        st.info("No tasks match. Add one above or change the filters.")
 else:
     st.caption("Add a pet first, then you can give it tasks.")
 
@@ -120,6 +157,8 @@ st.subheader("Today's Schedule")
 
 if st.button("Generate schedule"):
     scheduler = Scheduler(owner)
+    for conflict in scheduler.find_conflicts():
+        st.warning(f"⚠ {conflict}")
     plan = scheduler.generate_plan()
     if plan:
         st.table(
@@ -140,7 +179,7 @@ if st.button("Generate schedule"):
         )
         minutes_left = owner.available_minutes - used
         for t in owner.get_all_tasks():
-            if not t.completed and t not in plan:
+            if not t.completed and not t.due_date and t not in plan:
                 st.warning(
                     f"Skipped: {t.description} ({pet_name_for(t, owner)}, {t.duration} min, {t.priority} priority) — needs {t.duration - minutes_left} more min."
                 )
