@@ -6,6 +6,10 @@ st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
 
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner("Jordan", available_minutes=90)
+owner = st.session_state.owner
+
 st.markdown(
     """
 Welcome to the PawPal+ starter app.
